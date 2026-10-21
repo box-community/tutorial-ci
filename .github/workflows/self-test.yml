@@ -1,0 +1,16 @@
+name: Self-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-ci:
+    uses: ./.github/workflows/python-ci.yml
+    with:
+      working-directory: tests/fixtures/flask-app
