@@ -18,7 +18,8 @@ version in the matrix (3.11 and 3.14 by default), it:
    lockfile, so this matches what a reader following the tutorial installs.
 2. Runs `pip check` to catch conflicting packages.
 3. Imports every top-level `.py` file, with a placeholder value for each
-   variable in `.env.example`.
+   variable in `.env.example`. Other templates such as `config.py.example`
+   are copied to their real names first, as the reader would.
 4. Calls `GET /health` on any Flask app named `app` and expects `200`.
 
 It needs no secrets and never calls Box.

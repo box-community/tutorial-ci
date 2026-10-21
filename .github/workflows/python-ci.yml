@@ -49,6 +49,7 @@ jobs:
           import importlib
           import os
           import re
+          import shutil
           import sys
           from pathlib import Path
 
@@ -64,6 +65,14 @@ jobs:
                   if match:
                       name = match.group(1)
                       os.environ[name] = "0" if name.endswith("_ID") else "ci-smoke"
+
+          # Other config files the reader copies from a committed template, such as
+          # config.py.example or client_secrets.json.example.
+          for template in root.glob("*.example"):
+              target = root / template.stem
+              if template.name != ".env.example" and not target.exists():
+                  shutil.copy(template, target)
+                  print(f"Copied {template.name} to {target.name}")
 
           failures = []
           flask_apps = []
