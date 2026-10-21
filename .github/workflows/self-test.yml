@@ -14,3 +14,9 @@ jobs:
     uses: ./.github/workflows/python-ci.yml
     with:
       working-directory: tests/fixtures/flask-app
+
+  python-live:
+    uses: ./.github/workflows/python-live.yml
+    with:
+      working-directory: tests/fixtures/flask-app
+    secrets: inherit
