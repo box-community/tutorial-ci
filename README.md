@@ -60,6 +60,9 @@ version: 2
 updates:
   - package-ecosystem: pip
     directory: /
+    # Only propose a change when a release falls outside the allowed range,
+    # such as a new boxsdk major. Newer releases within range already install.
+    versioning-strategy: increase-if-necessary
     schedule:
       interval: weekly
       day: sunday
