@@ -1,0 +1,70 @@
+name: Python tutorial live test
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version to run the live test on.
+        type: string
+        default: '3.14'
+      test-command:
+        description: Command that runs the sample's live test.
+        type: string
+        default: python tests/live_test.py
+      working-directory:
+        description: Directory that contains requirements.txt and the sample's modules.
+        type: string
+        default: .
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Tutorial flow against test enterprise
+    # Pull requests from forks never receive secrets, so skip them instead of failing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: live-${{ github.repository }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: pip
+          cache-dependency-path: ${{ inputs.working-directory }}/requirements.txt
+
+      - run: python -m pip install -r requirements.txt
+
+      # Callers pass `secrets: inherit`. Each sample reads different variable names
+      # (from its .env.example), so export every secret under its own name.
+      # Dependabot runs receive the repository's Dependabot secrets instead.
+      - name: Export secrets as environment variables
+        env:
+          CALLER_SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import uuid
+
+          secrets = {
+              name: value
+              for name, value in json.loads(os.environ["CALLER_SECRETS"]).items()
+              if name != "github_token"
+          }
+          with open(os.environ["GITHUB_ENV"], "a") as env_file:
+              for name, value in secrets.items():
+                  delimiter = f"EOF_{uuid.uuid4().hex}"
+                  env_file.write(f"{name}<<{delimiter}\n{value}\n{delimiter}\n")
+          print("Exported:", ", ".join(sorted(secrets)) or "none")
+          PY
+
+      - run: ${{ inputs.test-command }}

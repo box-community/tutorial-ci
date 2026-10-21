@@ -28,6 +28,23 @@ It needs no secrets and never calls Box.
 | `python-versions` | `'["3.11", "3.14"]'` | JSON list of Python versions to test. |
 | `working-directory` | `.` | Directory that contains `requirements.txt` and the sample's modules. |
 
+### `python-live.yml`
+
+Runs a sample's live test against a test Box enterprise. It installs
+`requirements.txt`, exports every secret the caller passes as an environment
+variable with the same name, and runs the test command. Name the secrets after
+the variables in the sample's `.env.example`, so the test reads them the same
+way the sample does.
+
+The job skips pull requests from forks, which never receive secrets, and runs
+one live test at a time per repository.
+
+| Input | Default | Description |
+| --- | --- | --- |
+| `python-version` | `'3.14'` | Python version to run the live test on. |
+| `test-command` | `python tests/live_test.py` | Command that runs the sample's live test. |
+| `working-directory` | `.` | Directory that contains `requirements.txt` and the sample's modules. |
+
 ## Use it in a sample repository
 
 Add `.github/workflows/ci.yml`:
@@ -51,6 +68,30 @@ jobs:
   ci:
     uses: box-community/tutorial-ci/.github/workflows/python-ci.yml@v1
 ```
+
+To run a live test, add `tests/live_test.py` and `.github/workflows/live.yml`:
+
+```yaml
+name: Live test (Box)
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    uses: box-community/tutorial-ci/.github/workflows/python-live.yml@v1
+    secrets: inherit
+```
+
+Add the secrets under **Settings > Secrets and variables** in both the
+**Actions** and **Dependabot** sections. Workflows triggered by Dependabot pull
+requests only receive Dependabot secrets.
 
 Add `.github/dependabot.yml` so Dependabot proposes updates to `requirements.txt`
 and to the `@v1` reference above:
@@ -83,8 +124,10 @@ Sample repositories pin a major version tag such as `@v1`. Backward-compatible
 changes move the `v1` tag forward. Breaking changes, such as a new required
 input, get a new major tag so existing callers keep working until they opt in.
 
-Changes here are tested by `self-test.yml`, which runs `python-ci.yml` against
-the fixture in `tests/fixtures/flask-app`.
+Changes here are tested by `self-test.yml`, which runs both workflows against
+the fixture in `tests/fixtures/flask-app`. The live fixture expects a
+`FIXTURE_SECRET` repository secret (any value) in both the Actions and
+Dependabot sections.
 
 ## License
 
